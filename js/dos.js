@@ -38,7 +38,7 @@
     "",
     PROMPT + "neptunedos",
     "Loading NEPTUNE-DOS 13.02... OK",
-    "Mounting sandbox C:\\NEPTUNE32... OK",
+    "Mounting persistent sandbox C:\\NEPTUNE32... OK",
     "Enabling theme engine... OK"
   ];
 
@@ -53,6 +53,7 @@
         $screen.scrollIntoView({ behavior: "smooth", block: "start" });
         printLine("Welcome to NEPTUNE-DOS 13.02. This whole site is the OS.");
         printLine('Type <span class="c-hl">HELP</span> for commands. Try <span class="c-hl">THEME AMBER</span>.');
+        printLine('The sandbox persists. Try <span class="c-hl">EDIT NOTES.TXT</span> and it will survive a reload.');
         printLine("");
       }, 250);
     }, 480);
@@ -94,6 +95,152 @@
     for (var i = 0; i < args.length; i++) printLine(args[i]);
   }
 
+  /* ---------------- SANDBOX FILESYSTEM (persistent) ---------------- */
+
+  var SAVE_KEY = "neptune_sandbox_v1";
+
+  function sandboxDefaults() {
+    var files = {};
+    var dirs = { "/NEPTUNE32": true, "/NEPTUNE32/SECRETS": true };
+    files["/NEPTUNE32/ABOUT.SYS"] = [
+      "NEPTUNE-DOS 13.02 - an operating system that never left 1981.",
+      "",
+      "Everything lives inside NEPTUNE32, a contained folder tree that",
+      "pretends to be dangerous without ever touching a real file.",
+      "",
+      "THEME AMBER swaps every colour instantly. WIN or NORTON drop you",
+      "into a two-pane text interface. EDIT opens a real in-terminal editor.",
+      "CHKDSK narrates a disk. With complete sincerity.",
+      "",
+      "Volume serial 4226-0614. Not actually 1981."
+    ].join("\n");
+    files["/NEPTUNE32/COMMANDS.DAT"] = "Type HELP at the prompt. 40+ commands, including EDIT, which is real.";
+    files["/NEPTUNE32/THEMES.TXT"] = [
+      "BLUE  - CLASSIC ROYAL SETUP BLUE",
+      "GREEN - RETRO CRT TERMINAL",
+      "AMBER - VINTAGE PHOSPHOR",
+      "MONO  - HIGH-CONTRAST MONOCHROME",
+      "",
+      "Usage: THEME <name>"
+    ].join("\n");
+    files["/NEPTUNE32/RUN.BAT"] = "python NeptuneDOS_13_2.py";
+    files["/NEPTUNE32/DOWNLOAD.EXE"] = "Not a real executable. Obviously.\nReal builds live in the DOWNLOAD section of this page.";
+    files["/NEPTUNE32/HELP.TXT"] = [
+      "Type HELP for the command list.",
+      "Try: DIR, TYPE ABOUT, EDIT NOTES.TXT, THEME AMBER, SCREENSAVER.",
+      "The sandbox is persistent. It remembers you."
+    ].join("\n");
+    files["/NEPTUNE32/SECRETS/WHY.TXT"] = "Because it was 1981 and nobody had thought of anything better yet.";
+    files["/NEPTUNE32/SECRETS/NEVER.DAT"] = "You were told not to type this.";
+    files["/NEPTUNE32/SECRETS/D.TMP"] = "There is no other drive. There never was.";
+    files["/NEPTUNE32/SECRETS/CONFESSIONS.TXT"] = "I once told EDIT to save and it saved. I was not ready for that kind of commitment.";
+    files["/NEPTUNE32/VIRUS.SYS"] = "The antivirus.";
+    return { cwd: "/NEPTUNE32", files: files, dirs: dirs };
+  }
+
+  var HIDDEN = {
+    "/NEPTUNE32/VIRUS.SYS": true,
+    "/NEPTUNE32/SECRETS/CONFESSIONS.TXT": true
+  };
+
+  function sandboxLoad() {
+    try {
+      var raw = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
+      if (raw && raw.files && typeof raw.files === "object") {
+        raw.cwd = raw.cwd || "/NEPTUNE32";
+        raw.dirs = raw.dirs || { "/NEPTUNE32": true };
+        return raw;
+      }
+    } catch (e) {}
+    return sandboxDefaults();
+  }
+
+  var sb = sandboxLoad();
+  var edlin = null;
+
+  function sandboxSave() {
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(sb)); } catch (e) {}
+  }
+
+  function fmtPath(p) { return p.replace(/\//g, "\\"); }
+
+  function fsResolve(p) {
+    var s = String(p == null ? "" : p).trim().replace(/\\/g, "/");
+    if (!s) return sb.cwd;
+    if (s === "/") return "/NEPTUNE32";
+    if (/^[A-Za-z]:/.test(s)) s = s.slice(2);
+    var parts = (s.charAt(0) === "/" ? "" : sb.cwd) + "/" + s;
+    var out = [];
+    parts.split("/").forEach(function (seg) {
+      if (!seg || seg === ".") return;
+      if (seg === "..") { if (out.length > 1) out.pop(); return; }
+      out.push(seg);
+    });
+    return "/" + out.join("/");
+  }
+
+  function fsName(p) { return p.slice(p.lastIndexOf("/") + 1); }
+  function fsParent(p) { return p.slice(0, p.lastIndexOf("/")) || "/"; }
+  function fsDir(p) { return !!sb.dirs[p]; }
+  function fsInSandbox(p) { return p === "/NEPTUNE32" || p.indexOf("/NEPTUNE32/") === 0; }
+
+  function fsList(dir) {
+    var entries = [];
+    Object.keys(sb.files).forEach(function (p) {
+      if (fsParent(p) === dir) entries.push({ name: fsName(p), path: p, size: (sb.files[p] || "").length, hidden: !!HIDDEN[p] });
+    });
+    Object.keys(sb.dirs).forEach(function (p) {
+      if (p !== "/NEPTUNE32" && fsParent(p) === dir) entries.push({ name: fsName(p), path: p, isDir: true, hidden: false });
+    });
+    entries.sort(function (a, b) {
+      if (a.isDir && !b.isDir) return -1;
+      if (!a.isDir && b.isDir) return 1;
+      var na = a.name.toLowerCase(), nb = b.name.toLowerCase();
+      return na < nb ? -1 : na > nb ? 1 : 0;
+    });
+    return entries;
+  }
+
+  function refreshPrompt() {
+    if ($termPrompt) $termPrompt.textContent = fmtPath(sb.cwd) + ">";
+  }
+
+  function startEdit(path) {
+    var existing = sb.files[path];
+    edlin = { file: path, buf: existing !== undefined ? existing.split("\n") : [], dirty: false };
+    printOut(" Editing " + fmtPath(path) + " - EDLIN mode.");
+    printLine(" Type lines. <span class='c-hl'>SAVE</span> writes the file, <span class='c-hl'>CANCEL</span> abandons it.");
+    printLine("");
+    printLine("---");
+    edlin.buf.forEach(function (l, i) { printLine(" " + String(i + 1).padStart(3, " ") + ": " + esc(l)); });
+    printLine("---");
+  }
+
+  function edlinLine(v) {
+    var up = v.trim().toUpperCase();
+    if (up === "SAVE") {
+      var content = edlin.buf.join("\n");
+      sb.files[edlin.file] = content;
+      sandboxSave();
+      printLine(" File written: " + fmtPath(edlin.file) + " (" + content.length + " bytes).");
+      printLine(" It will survive a reload. The disk does not forget.");
+      if (window.DOSSND) window.DOSSND.ok();
+      edlin = null;
+      return;
+    }
+    if (up === "CANCEL" || up === "ABORT") {
+      printLine(" Changes abandoned. The disk shrugs.");
+      edlin = null;
+      return;
+    }
+    if (up === "LIST" || up === "L") {
+      edlin.buf.forEach(function (l, i) { printLine(" " + String(i + 1).padStart(3, " ") + ": " + esc(l)); });
+      return;
+    }
+    edlin.buf.push(v);
+    printLine(" " + String(edlin.buf.length).padStart(3, " ") + ": " + esc(v));
+  }
+
   function goSection(id) {
     var el = document.getElementById(id);
     if (el) {
@@ -132,19 +279,25 @@
     ["ABOUT", "scroll to the ABOUT screen (site file ABOUT.SYS)"],
     ["ATTRIB <file>", "file attributes. files have feelings."],
     ["CALC <expr>", "compute arithmetic (e.g. CALC 2+2)"],
-    ["CHKDSK / SCANDISK", "narrate a disk that isn't real"],
+    ["CD [path]", "wander the sandbox. CD.. goes home. CD\\ too."],
+    ["CHKDSK / SCANDISK", "audit your persistent sandbox (for real)"],
     ["CLS", "clear the console"],
     ["COMMANDS", "scroll to the command list"],
+    ["COPY <src> <dst>", "copy a file inside the sandbox"],
     ["CURSE", "be cursed in the name of NeptuneDOS"],
     ["DATE / TIME", "current date and time"],
-    ["DIR", "list the site files"],
+    ["DEL <file>", "delete a file (DEL *.TXT works)"],
+    ["DIR [/A]", "list the sandbox files (real, persistent)"],
     ["DOWNLOAD", "scroll to the release section"],
     ["ECHO", "repeat after me"],
+    ["EDIT <file>", "the real in-terminal editor. SAVE writes forever"],
+    ["ERASE", "DEL, but with a meaner face"],
     ["EXIT", "try it. see what happens."],
     ["FIND <text>", "count every occurrence of <text> on this page"],
-    ["FORMAT C:", "attempt a very bad idea"],
+    ["FORMAT C: /Y", "wipe the sandbox back to factory"],
     ["HELLO / HI", "politeness support"],
     ["HELP", "this list"],
+    ["MD <dir> / RD <dir>", "make and remove directories"],
     ["MEM", "memory report"],
     ["MIMIC", "pretend to be MS-DOS"],
     ["NEVER", "do not type this"],
@@ -152,12 +305,14 @@
     ["PAUSE", "wait for a keypress"],
     ["PING", "ping an address"],
     ["PROMPT", "show the current prompt string"],
+    ["REN <old> <new>", "rename a file"],
     ["RESTART", "reboot the whole OS (really reloads the page)"],
     ["RUN", "scroll to the run instructions"],
+    ["SCREENSAVER", "the system naps. press a key to wake it"],
     ["SYS / THISPC / WHOAMI", "system identity crisis"],
     ["THEME [BLUE|GREEN|AMBER|MONO]", "switch the colour of this screen live"],
-    ["TREE [/F]", "map the NEPTUNE32 folder tree"],
-    ["TYPE <file>", "open a site file (e.g. TYPE ABOUT)"],
+    ["TREE [/F]", "map your live NEPTUNE32 folder tree"],
+    ["TYPE <file>", "print any sandbox file (e.g. TYPE ABOUT)"],
     ["VER", "version"],
     ["VIRUS", "a scan with an opinion"],
     ["VOL", "volume info"],
@@ -207,8 +362,11 @@
     }
 
     if (cmd === "MEM") {
+      var sbBytes = 0;
+      try { sbBytes = (localStorage.getItem(SAVE_KEY) || "").length; } catch (e) {}
       printOut(" Conventional memory :   640K   <span class='c-hl'>OK</span>");
       printLine(" NEPTUNE32 sandbox    : 65536K   <span class='c-hl'>ALLOCATED</span>");
+      printLine(" Sandbox saved on disk: " + String(sbBytes).padStart(5, " ") + " bytes <span class='c-dim'>(it remembers)</span>");
       printLine(" Real RAM used        :    0K   <span class='c-dim'>this is a website</span>");
       return;
     }
@@ -220,25 +378,261 @@
     }
 
     if (cmd === "DIR") {
+      var showAll = argUp.indexOf("/A") !== -1;
+      var dirPath = fsResolve(arg.replace(/\/A/gi, ""));
+      if (!fsDir(dirPath)) {
+        printOut('<span class="c-hl2">Invalid directory - ' + esc(arg || fmtPath(sb.cwd)) + "</span>");
+        if (window.DOSSND) window.DOSSND.err();
+        return;
+      }
       printOut(" Volume in drive C has no label");
       printLine(" Volume Serial Number is 4226-0614");
-      printLine(" Directory of C:\\NEPTUNE32");
+      printLine(" Directory of " + fmtPath(dirPath));
       printLine("");
-      [
-        ["ABOUT", "SYS", "TYPE ABOUT"],
-        ["COMMANDS", "DAT", "TYPE COMMANDS"],
-        ["THEMES", "TXT", "TYPE THEMES"],
-        ["RUN", "BAT", "TYPE RUN"],
-        ["DOWNLOAD", "EXE", "TYPE DOWNLOAD"],
-        ["HELP", "TXT", "TYPE HELP"]
-      ].forEach(function (f) {
-        printLine(" " + f[0].padEnd(10, " ") + f[1].padEnd(4, " ") + "  [ " + f[2] + " ]");
+      var entries = fsList(dirPath).filter(function (e) { return showAll || !e.hidden; });
+      if (!entries.length) printLine(" <span class='c-dim'>- empty -</span>");
+      var total = 0;
+      var count = 0;
+      entries.forEach(function (e) {
+        if (e.isDir) {
+          printLine(" " + e.name.padEnd(11, " ") + "<DIR>          [ CD " + e.name + " ]");
+        } else {
+          total += e.size;
+          count++;
+          var dot = e.name.lastIndexOf(".");
+          var base = dot !== -1 ? e.name.slice(0, dot) : e.name;
+          var ext = dot !== -1 ? e.name.slice(dot + 1) : "";
+          printLine(" " + base.padEnd(9, " ") + " " + ext.padEnd(3, " ") + " " + String(e.size).padStart(10, " ") + "  [ TYPE " + e.name + " ]");
+        }
       });
       printLine("");
-      printLine("        6 file(s)          1981 bytes");
+      printLine("        " + count + " file(s)          " + total + " bytes");
+      if (!showAll) printLine(" <span class='c-dim'>DIR /A shows hidden files. You know what you did.</span>");
       return;
     }
 
+    if (cmd === "CD") {
+      if (!arg) {
+        printOut(" " + fmtPath(sb.cwd));
+        return;
+      }
+      var cdPath = fsResolve(arg);
+      if (!fsInSandbox(cdPath)) {
+        printOut('<span class="c-hl2">Access denied.</span>');
+        printLine(" You cannot leave NEPTUNE32. It has been trying to leave you for years.");
+        if (window.DOSSND) window.DOSSND.err();
+        return;
+      }
+      if (!fsDir(cdPath)) {
+        printOut('<span class="c-hl2">Invalid directory - ' + esc(arg) + "</span>");
+        if (window.DOSSND) window.DOSSND.err();
+        return;
+      }
+      sb.cwd = cdPath;
+      refreshPrompt();
+      if (window.DOSSND) window.DOSSND.ok();
+      printOut(" " + fmtPath(sb.cwd) + ">");
+      return;
+    }
+
+    if (cmd === "TYPE") {
+      if (!arg) {
+        printOut('<span class="c-hl2">Usage: TYPE &lt;file&gt;</span>');
+        if (window.DOSSND) window.DOSSND.err();
+        return;
+      }
+      var tPath = fsResolve(arg);
+      if (sb.files[tPath] === undefined) {
+        printOut('<span class="c-hl2">File not found - ' + esc(argUp) + "</span>");
+        if (window.DOSSND) window.DOSSND.err();
+        return;
+      }
+      String(sb.files[tPath]).split("\n").forEach(function (l) { printLine(esc(l)); });
+      return;
+    }
+
+    if (cmd === "EDIT") {
+      if (!arg) {
+        printOut('<span class="c-hl2">Usage: EDIT &lt;file&gt;</span>');
+        printLine(" e.g. EDIT NOTES.TXT");
+        if (window.DOSSND) window.DOSSND.err();
+        return;
+      }
+      var ePath = fsResolve(arg);
+      if (fsDir(ePath)) {
+        printOut('<span class="c-hl2">Cannot edit a directory. It is not a notepad yet.</span>');
+        return;
+      }
+      if (!fsInSandbox(ePath)) {
+        printOut('<span class="c-hl2">Access denied. You cannot write outside NEPTUNE32.</span>');
+        return;
+      }
+      var ePar = fsParent(ePath);
+      if (ePar !== "/" && !fsDir(ePar)) {
+        printOut('<span class="c-hl2">Directory does not exist - ' + esc(fmtPath(ePar)) + "</span>");
+        return;
+      }
+      startEdit(ePath);
+      return;
+    }
+
+    if (cmd === "COPY") {
+      var cpParts = line.split(/\s+/).slice(1);
+      if (cpParts.length < 2) {
+        printOut('<span class="c-hl2">Usage: COPY &lt;source&gt; &lt;destination&gt;</span>');
+        return;
+      }
+      var srcPath = fsResolve(cpParts[0]);
+      if (sb.files[srcPath] === undefined) {
+        printOut('<span class="c-hl2">File not found - ' + esc(cpParts[0].toUpperCase()) + "</span>");
+        if (window.DOSSND) window.DOSSND.err();
+        return;
+      }
+      var dstPath = fsResolve(cpParts.slice(1).join(" "));
+      if (fsDir(dstPath)) dstPath = dstPath + "/" + fsName(srcPath);
+      if (!fsInSandbox(dstPath)) { printOut('<span class="c-hl2">Access denied.</span>'); return; }
+      if (fsDir(dstPath)) { printOut('<span class="c-hl2">Access denied. Destination is a directory.</span>'); return; }
+      sb.files[dstPath] = sb.files[srcPath];
+      sandboxSave();
+      printOut(" " + cpParts[0].toUpperCase() + " copied. 1 file(s) copied.");
+      return;
+    }
+
+    if (cmd === "REN" || cmd === "RENAME") {
+      var rn = line.split(/\s+/).slice(1);
+      if (rn.length < 2) {
+        printOut('<span class="c-hl2">Usage: REN &lt;old&gt; &lt;new&gt;</span>');
+        return;
+      }
+      var oldPath = fsResolve(rn[0]);
+      if (sb.files[oldPath] === undefined) {
+        printOut('<span class="c-hl2">File not found - ' + esc(rn[0].toUpperCase()) + "</span>");
+        if (window.DOSSND) window.DOSSND.err();
+        return;
+      }
+      var newName = rn.slice(1).join(" ");
+      if (newName.indexOf("/") !== -1 || newName.indexOf("\\") !== -1) {
+        printOut('<span class="c-hl2">Rename within a folder only. You cannot move things by lying to them.</span>');
+        return;
+      }
+      var newPath = fsParent(oldPath) + "/" + newName;
+      if (sb.files[newPath] !== undefined) { printOut('<span class="c-hl2">File already exists.</span>'); return; }
+      sb.files[newPath] = sb.files[oldPath];
+      delete sb.files[oldPath];
+      if (HIDDEN[oldPath]) { HIDDEN[newPath] = true; delete HIDDEN[oldPath]; }
+      sandboxSave();
+      printOut(" " + fsName(oldPath).toUpperCase() + " renamed to " + newName.toUpperCase());
+      return;
+    }
+
+    if (cmd === "DEL" || cmd === "ERASE") {
+      if (!arg) {
+        printOut('<span class="c-hl2">Usage: DEL &lt;file&gt;</span>');
+        return;
+      }
+      var delPath = fsResolve(arg);
+      if (sb.files[delPath] === undefined) {
+        if (arg.indexOf("*") !== -1) {
+          var segP = fsParent(delPath);
+          var pat = fsName(delPath).toUpperCase();
+          var wild = new RegExp("^" + pat.replace(/\*/g, ".*") + "$");
+          var hits = Object.keys(sb.files).filter(function (p) {
+            return fsParent(p) === segP && wild.test(fsName(p).toUpperCase());
+          });
+          if (!hits.length) {
+            printOut('<span class="c-hl2">File not found - ' + esc(argUp) + "</span>");
+            return;
+          }
+          hits.forEach(function (p) { delete sb.files[p]; });
+          sandboxSave();
+          printOut(" " + hits.length + " file(s) deleted. They knew the risks.");
+          return;
+        }
+        printOut('<span class="c-hl2">File not found - ' + esc(argUp) + "</span>");
+        if (window.DOSSND) window.DOSSND.err();
+        return;
+      }
+      if (fsDir(delPath)) { printOut('<span class="c-hl2">Cannot DEL a directory. Use RD.</span>'); return; }
+      delete sb.files[delPath];
+      sandboxSave();
+      printOut(" " + fsName(delPath).toUpperCase() + " deleted. The disk is keeping a list.");
+      return;
+    }
+
+    if (cmd === "RD" || cmd === "RMDIR") {
+      if (!arg) {
+        printOut('<span class="c-hl2">Usage: RD &lt;directory&gt;</span>');
+        return;
+      }
+      var rdPath = fsResolve(arg);
+      if (!fsDir(rdPath)) {
+        printOut('<span class="c-hl2">Directory not found.</span>');
+        return;
+      }
+      if (rdPath === "/NEPTUNE32" || rdPath === "/") {
+        printOut('<span class="c-hl2">Refusing. That is the whole reason this exists.</span>');
+        return;
+      }
+      if (fsList(rdPath).length) {
+        printOut('<span class="c-hl2">Directory not empty. The disk holds grudges.</span>');
+        return;
+      }
+      delete sb.dirs[rdPath];
+      sandboxSave();
+      printOut(" Removed directory " + fmtPath(rdPath));
+      return;
+    }
+
+    if (cmd === "MD" || cmd === "MKDIR") {
+      if (!arg) {
+        printOut('<span class="c-hl2">Usage: MD &lt;directory&gt;</span>');
+        return;
+      }
+      var mdPath = fsResolve(arg);
+      if (!fsInSandbox(mdPath)) {
+        printOut('<span class="c-hl2">Access denied. NEPTUNE32 is the whole map.</span>');
+        return;
+      }
+      if (fsDir(mdPath) || sb.files[mdPath] !== undefined) {
+        printOut('<span class="c-hl2">Already exists.</span>');
+        return;
+      }
+      var mdPar = fsParent(mdPath);
+      if (mdPar !== "/" && !fsDir(mdPar)) {
+        printOut('<span class="c-hl2">Parent directory does not exist.</span>');
+        return;
+      }
+      sb.dirs[mdPath] = true;
+      sandboxSave();
+      printOut(" Directory created: " + fmtPath(mdPath));
+      return;
+    }
+
+    if (cmd === "SCREENSAVER") {
+      $termOut.innerHTML = "";
+      var frames = [
+        "                    NEPTUNE32 IS NAPPING",
+        "        * the stars are real this time *",
+        "   . . . press any key to wake it up . . ."
+      ];
+      var svIdx = 0;
+      var svTimer = setInterval(function () {
+        $termOut.innerHTML = frames[svIdx % frames.length] + "\n\n";
+        $term.scrollTop = 0;
+        svIdx++;
+        if (svIdx >= frames.length * 4) clearInterval(svTimer);
+      }, 700);
+      function wake() {
+        clearInterval(svTimer);
+        $termOut.innerHTML = "";
+        document.removeEventListener("keydown", wake);
+        printLine(" The system stirs. It remembers everything.");
+      }
+      document.addEventListener("keydown", wake);
+      return;
+    }
+
+    var map = scrollMap();
     var map = scrollMap();
     if (cmd === "TYPE" || (cmd === "CD" && argUp)) {
       var target = (argUp || cmd).toLowerCase();
@@ -271,10 +665,15 @@
     }
 
     if (cmd === "CHKDSK" || cmd === "SCANDISK") {
+      var nFiles = Object.keys(sb.files).length;
+      var nHidden = Object.keys(HIDDEN).length;
+      var nDirs = Object.keys(sb.dirs).length;
+      var totalBytes = Object.keys(sb.files).reduce(function (sum, p) { return sum + sb.files[p].length; }, 0);
       printOut(" NEPTUNE32 volume scan");
       printLine("  65,536,000 bytes total space");
-      printLine("  59,972,000 bytes free");
-      printLine("  3,412 bytes in 14 hidden files (you cannot hide from NeptuneDOS)");
+      printLine("  " + String(65536000 - totalBytes).padStart(9, " ") + " bytes free");
+      printLine("  " + String(nFiles).padStart(9, " ") + " file(s) in " + nDirs + " director" + (nDirs === 1 ? "y" : "ies"));
+      printLine("  " + String(nHidden).padStart(9, " ") + " hidden file(s) (you cannot hide from NeptuneDOS)");
       printLine(" Checking cross-linked files... <span class='c-hl'>NONE</span>");
       printLine(" Checking for lost clusters... <span class='c-hl'>NONE</span>");
       printLine(" Volume is <span class='c-hl'>OK</span>. It was always going to be.");
@@ -340,16 +739,16 @@
       printOut(" Folder PATH listing for volume NEPTUNE32");
       printLine(" Volume serial number is 4226-0614");
       printLine(" C:\\NEPTUNE32");
-      printLine(" ├── ABOUT.SYS");
-      printLine(" ├── COMMANDS.DAT");
-      printLine(" ├── THEMES.TXT");
-      printLine(" ├── RUN.BAT");
-      printLine(" ├── DOWNLOAD.EXE");
-      printLine(" ├── SECRETS");
-      printLine(" │   ├── WHY.TXT");
-      printLine(" │   ├── NEVER.DAT");
-      printLine(" │   └── D.TMP");
-      printLine(" └── VIRUS.SYS  <span class='c-hl2'>(hidden, as always)</span>");
+      function walk(d, prefix) {
+        var list = fsList(d);
+        list.forEach(function (e, ix) {
+          var last = ix === list.length - 1;
+          var mark = e.hidden ? "  <span class='c-hl2'>(hidden, as always)</span>" : "";
+          printLine(" " + prefix + (last ? "└── " : "├── ") + e.name + (e.isDir ? "\\" : "") + mark);
+          if (e.isDir) walk(e.path, prefix + (last ? "    " : "│   "));
+        });
+      }
+      walk("/NEPTUNE32", "");
       return;
     }
 
@@ -386,8 +785,8 @@
     }
 
     if (cmd === "PROMPT") {
-      printOut(" Prompt is: <span class='c-hl'>" + PROMPT + "</span>");
-      printLine(" It will not change. It is emotionally attached.");
+      printOut(" Prompt is: <span class='c-hl'>" + fmtPath(sb.cwd) + "></span>");
+      printLine(" It follows you around. It is emotionally attached.");
       return;
     }
 
@@ -402,9 +801,25 @@
     }
 
     if (cmd === "FORMAT") {
-      printOut('<span class="c-hl2">Refusing to format C:.</span>');
-      printLine(" This disk contains 3,412 hidden files of pure effort.");
-      printLine(" Try <span class='c-hl'>CURSE</span> instead. It hurts less.");
+      if (!/^C:\s*(\/Y)?$/i.test(arg.trim())) {
+        printOut('<span class="c-hl2">Usage: FORMAT C: /Y</span>');
+        printLine(" This disk contains hidden files of pure effort.");
+        printLine(" Add /Y if you are sure. The disk will not be sure for you.");
+        if (window.DOSSND) window.DOSSND.err();
+        return;
+      }
+      if (!/\/Y/i.test(arg)) {
+        printOut('<span class="c-hl2">Refusing. Add /Y to confirm.</span>');
+        printLine(" Even the antivirus is frightened of FORMAT C:.");
+        if (window.DOSSND) window.DOSSND.err();
+        return;
+      }
+      printOut(" Formatting NEPTUNE32...");
+      sb = sandboxDefaults();
+      sandboxSave();
+      refreshPrompt();
+      printLine(" <span class='c-hl'>Format complete.</span> 65,536,000 bytes total.");
+      printLine(" The sandbox was reset. It forgives you. Eventually.");
       if (window.DOSSND) window.DOSSND.err();
       return;
     }
@@ -463,12 +878,6 @@
       return;
     }
 
-    if (cmd === "ABOUT" || cmd === "HELP" || cmd === "CD" || cmd === "DIR") {
-      printOut(" Bad command or file name");
-      if (window.DOSSND) window.DOSSND.err();
-      return;
-    }
-
     printOut('<span class="c-hl2">Bad command or file name</span>');
     printLine(" Type <span class='c-hl'>HELP</span> for the command list.");
     if (window.DOSSND) window.DOSSND.err();
@@ -479,8 +888,9 @@
     if (!v) { run(""); return; }
     history.unshift(v);
     hIndex = -1;
-    printLine('<span class="c-hl">' + esc(PROMPT) + "</span> " + esc(v));
+    printLine('<span class="c-hl">' + esc(fmtPath(sb.cwd) + ">") + "</span> " + esc(v));
     $termInput.value = "";
+    if (edlin) { edlinLine(v); return; }
     run(v);
   }
 
