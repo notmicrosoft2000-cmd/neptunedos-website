@@ -130,6 +130,8 @@
 
   var COMMANDS = [
     ["ABOUT", "scroll to the ABOUT screen (site file ABOUT.SYS)"],
+    ["ATTRIB <file>", "file attributes. files have feelings."],
+    ["CALC <expr>", "compute arithmetic (e.g. CALC 2+2)"],
     ["CHKDSK / SCANDISK", "narrate a disk that isn't real"],
     ["CLS", "clear the console"],
     ["COMMANDS", "scroll to the command list"],
@@ -139,17 +141,27 @@
     ["DOWNLOAD", "scroll to the release section"],
     ["ECHO", "repeat after me"],
     ["EXIT", "try it. see what happens."],
+    ["FIND <text>", "count every occurrence of <text> on this page"],
+    ["FORMAT C:", "attempt a very bad idea"],
+    ["HELLO / HI", "politeness support"],
     ["HELP", "this list"],
     ["MEM", "memory report"],
     ["MIMIC", "pretend to be MS-DOS"],
+    ["NEVER", "do not type this"],
+    ["NOTEPAD / BROWSER / OPEN", "windows that will not open"],
+    ["PAUSE", "wait for a keypress"],
     ["PING", "ping an address"],
+    ["PROMPT", "show the current prompt string"],
     ["RESTART", "reboot the whole OS (really reloads the page)"],
     ["RUN", "scroll to the run instructions"],
+    ["SYS / THISPC / WHOAMI", "system identity crisis"],
     ["THEME [BLUE|GREEN|AMBER|MONO]", "switch the colour of this screen live"],
+    ["TREE [/F]", "map the NEPTUNE32 folder tree"],
     ["TYPE <file>", "open a site file (e.g. TYPE ABOUT)"],
     ["VER", "version"],
     ["VIRUS", "a scan with an opinion"],
     ["VOL", "volume info"],
+    ["WHY", "the big question"],
     ["WIN / NORTON", "the TUI file manager (not available here)"]
   ];
 
@@ -324,6 +336,133 @@
       return;
     }
 
+    if (cmd === "TREE") {
+      printOut(" Folder PATH listing for volume NEPTUNE32");
+      printLine(" Volume serial number is 4226-0614");
+      printLine(" C:\\NEPTUNE32");
+      printLine(" ├── ABOUT.SYS");
+      printLine(" ├── COMMANDS.DAT");
+      printLine(" ├── THEMES.TXT");
+      printLine(" ├── RUN.BAT");
+      printLine(" ├── DOWNLOAD.EXE");
+      printLine(" ├── SECRETS");
+      printLine(" │   ├── WHY.TXT");
+      printLine(" │   ├── NEVER.DAT");
+      printLine(" │   └── D.TMP");
+      printLine(" └── VIRUS.SYS  <span class='c-hl2'>(hidden, as always)</span>");
+      return;
+    }
+
+    if (cmd === "CALC") {
+      var expr = arg.replace(/[^0-9+\-*/().\s]/g, "");
+      if (!expr) {
+        printOut('<span class="c-hl2">Usage: CALC &lt;expression&gt;</span>');
+        printLine(" e.g. CALC (6*7)-2");
+        if (window.DOSSND) window.DOSSND.err();
+        return;
+      }
+      try {
+        var res = Function("return (" + expr.replace(/\^/g, "**") + ")")();
+        if (typeof res === "number" && isFinite(res)) {
+          printOut(" " + expr.replace(/\^/g, "^") + " = <span class='c-hl'>" + Math.round(res * 10000) / 10000 + "</span>");
+        } else {
+          throw new Error("nan");
+        }
+      } catch (e) {
+        printOut('<span class="c-hl2">Syntax error. This is a 66 MHz CPU, not a calculator.</span>');
+        if (window.DOSSND) window.DOSSND.err();
+      }
+      return;
+    }
+
+    if (cmd === "SYS" || cmd === "THISPC" || cmd === "WHOAMI") {
+      printOut(" System: NEPTUNE-DOS 13.02 (a website)");
+      printLine(" Hostname: NEPTUNE32");
+      printLine(" Processor: 80486DX2 @ 66 MHz (pretend)");
+      printLine(" RAM: 65,536K (65536K of which is imaginary)");
+      printLine(" User: <span class='c-hl'>root of all problems</span>");
+      printLine(" Graphics: CGA 640x480, 16 colours, 16 regrets");
+      return;
+    }
+
+    if (cmd === "PROMPT") {
+      printOut(" Prompt is: <span class='c-hl'>" + PROMPT + "</span>");
+      printLine(" It will not change. It is emotionally attached.");
+      return;
+    }
+
+    if (cmd === "PAUSE") {
+      printOut(" Press any key to continue...");
+      var donePause = function () {
+        document.removeEventListener("keydown", donePause);
+        printLine(" <span class='c-dim'>thank you. the system is calm again.</span>");
+      };
+      document.addEventListener("keydown", donePause);
+      return;
+    }
+
+    if (cmd === "FORMAT") {
+      printOut('<span class="c-hl2">Refusing to format C:.</span>');
+      printLine(" This disk contains 3,412 hidden files of pure effort.");
+      printLine(" Try <span class='c-hl'>CURSE</span> instead. It hurts less.");
+      if (window.DOSSND) window.DOSSND.err();
+      return;
+    }
+
+    if (cmd === "ATTRIB") {
+      printOut(" Attributes for " + (esc(arg || "NEPTUNE32")) + ":");
+      printLine("  Archive  = ON");
+      printLine("  Read-Only= OFF");
+      printLine("  System   = ALWAYS (the whole OS is a system file)");
+      printLine("  Hidden   = <span class='c-hl'>you are the hidden file</span>");
+      return;
+    }
+
+    if (cmd === "FIND") {
+      var needle = arg.toLowerCase();
+      if (!needle) {
+        printOut('<span class="c-hl2">Usage: FIND &lt;text&gt;</span>');
+        return;
+      }
+      var hay = (document.body ? document.body.innerText : "").toLowerCase();
+      var n = hay.split(needle).length - 1;
+      printOut(" Searching this page for \"" + esc(arg) + "\"...");
+      printLine(" Found <span class='c-hl'>" + n + "</span> occurrence(s). It's all <span class='c-dim'>somewhere</span>.");
+      return;
+    }
+
+    if (cmd === "NOTEPAD" || cmd === "BROWSER" || cmd === "OPEN" || cmd === "WEB" || cmd === "CONTROL" || cmd === "RUN") {
+      printOut(" Opening " + cmd + "...");
+      printLine(" <span class='c-dim'>Nothing happened. This is a text interface. The window refused.</span>");
+      printLine(" Try scrolling. The whole page is your window.");
+      return;
+    }
+
+    if (cmd === "D" || cmd === "C:") {
+      printOut(" You switched to drive " + esc(cmd) + ".");
+      printLine(" There is no other drive. There never was.");
+      printLine(" The drive is inside you.");
+      return;
+    }
+
+    if (cmd === "HELLO" || cmd === "HI") {
+      printOut(" Hello. You typed \"" + esc(cmd) + "\" to an operating system.");
+      printLine(" It is politely ignoring the existential weight of that.");
+      return;
+    }
+
+    if (cmd === "WHY") {
+      printOut(" Because it was 1981 and nobody had thought of anything better yet.");
+      printLine(" <span class='c-dim'>(this is not actually why. this is a website from 2026 pretending.)</span>");
+      return;
+    }
+
+    if (cmd === "NEVER") {
+      printOut(" You were told not to type this.");
+      printLine(" The good news: nothing happened. That's the point. It never does.");
+      return;
+    }
+
     if (cmd === "ABOUT" || cmd === "HELP" || cmd === "CD" || cmd === "DIR") {
       printOut(" Bad command or file name");
       if (window.DOSSND) window.DOSSND.err();
@@ -385,6 +524,54 @@
   if (window.SFX_CONFIG) {
     window.SFX_CONFIG = { hover: { f: 2100, d: 0.016, t: "square", v: 0.01 }, click: { f: 760, d: 0.04, t: "square", v: 0.03 } };
   }
+
+  /* ---------------- LIVE CLOCK + TICKER + REVEAL ---------------- */
+
+  var dosClock = document.getElementById("dosClock");
+  if (dosClock) {
+    function tickClock() {
+      var d = new Date();
+      dosClock.textContent =
+        String(d.getHours()).padStart(2, "0") + ":" +
+        String(d.getMinutes()).padStart(2, "0") + ":" +
+        String(d.getSeconds()).padStart(2, "0");
+    }
+    tickClock();
+    setInterval(tickClock, 1000);
+  }
+
+  var dosTicker = document.getElementById("dosTicker");
+  if (dosTicker) {
+    var TICKER = [
+      "checking for a reason to exist...",
+      "cpu: pretending at 66 MHz",
+      "ram: 65536K of imagination",
+      "BIOS: still looking for the good one",
+      "disk C: holding. barely.",
+      "theme engine: idling, judging you",
+      "neptune32: always watching",
+      "volume serial 4226-0614",
+      "you are the hidden file"
+    ];
+    var ti = 0;
+    setInterval(function () {
+      ti = (ti + 1) % TICKER.length;
+      dosTicker.textContent = TICKER[ti];
+    }, 4600);
+  }
+
+  var revealIO = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (e.isIntersecting) {
+        e.target.classList.add("in");
+        revealIO.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12 });
+  document.querySelectorAll(".reveal").forEach(function (el, i) {
+    el.style.setProperty("--d", String((i % 4) * 0.08) + "s");
+    revealIO.observe(el);
+  });
 
   runBoot();
 })();

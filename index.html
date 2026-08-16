@@ -14,6 +14,8 @@
 </head>
 <body data-theme="blue">
 
+  <div class="crt" aria-hidden="true"></div>
+
   <div id="boot" aria-hidden="true">
     <pre id="bootOut"></pre>
     <span id="bootCursor" class="boot-cursor" aria-hidden="true">█</span>
@@ -22,7 +24,7 @@
   <div id="screen" class="hidden">
 
     <header class="dosbar">
-      <div class="dosbar-l"><span class="win-char">█</span> NEPTUNE32 — SYSTEM CONSOLE <span class="dim">· NEPTUNE-DOS 13.2</span></div>
+      <div class="dosbar-l"><span class="win-char">█</span> NEPTUNE32 — SYSTEM CONSOLE <span class="dim">· NEPTUNE-DOS 13.2</span> <span class="dosbar-clock" id="dosClock">00:00:00</span></div>
       <nav class="dosbar-r" aria-label="Site navigation">
         <a href="#about" data-nav>ABOUT</a>
         <a href="#commands" data-nav>COMMANDS</a>
@@ -43,6 +45,7 @@
         <h1>An operating system<br>that never left 1981.</h1>
         <p class="hero-sub">NeptuneDOS is a full command shell written in Python — a royal-blue setup screen, a sandboxed file system, forty-some commands, and a TUI that all still think it's running on a 5 MHz processor.</p>
         <p class="hero-hint">YOU ARE ALREADY IN IT · TYPE <span class="hl">HELP</span> BELOW · TRY <span class="hl">THEME GREEN</span> · <span class="hl">THEME AMBER</span> · <span class="hl">THEME MONO</span></p>
+        <p class="ticker"><span id="dosTicker">checking for a reason to exist...</span><span class="caret">▌</span></p>
 
         <div class="term-wrap">
           <div class="term-head"><span class="term-dot"></span> C:\NEPTUNE32 — SYSTEM CONSOLE</div>
@@ -56,14 +59,14 @@
         </div>
       </section>
 
-      <section class="stats">
+      <section class="stats reveal">
         <div class="stat"><span class="stat-num">40+</span><span class="stat-label">COMMANDS IMPLEMENTED</span></div>
         <div class="stat"><span class="stat-num">4</span><span class="stat-label">COLOUR THEMES, LIVE-SWAPPABLE</span></div>
         <div class="stat"><span class="stat-num">1981–2026</span><span class="stat-label">YEARS OF CONTINUITY, ALLEGEDLY</span></div>
         <div class="stat"><span class="stat-num">0</span><span class="stat-label">REAL HARDWARE REQUIRED</span></div>
       </section>
 
-      <section class="dossection" id="about">
+      <section class="dossection reveal" id="about">
         <h2 class="sec-title">&gt; DIR C:\NEPTUNE32\ABOUT</h2>
         <div class="dircopy">
           <p><span class="prompt">C:\NEPTUNE32&gt;</span> Everything lives inside NEPTUNE32 — a contained folder tree the shell pretends to be dangerous without ever touching a file it shouldn't.</p>
@@ -75,7 +78,7 @@
         </div>
       </section>
 
-      <section class="dossection" id="commands">
+      <section class="dossection reveal" id="commands">
         <h2 class="sec-title">&gt; TYPE COMMANDS.DAT</h2>
         <div class="cmdgrid">
           <div class="cmdcol">
@@ -84,7 +87,7 @@
           </div>
           <div class="cmdcol">
             <h3 class="cmdcol-title">SYSTEM</h3>
-            <p>VER · SYS · THISPC · MEM · PROMPT · ECHO · CLS · PAUSE · DATE · TIME</p>
+            <p>VER · SYS · THISPC · WHOAMI · MEM · PROMPT · ECHO · CLS · PAUSE · DATE · TIME</p>
           </div>
           <div class="cmdcol">
             <h3 class="cmdcol-title">TOOLS</h3>
@@ -94,11 +97,15 @@
             <h3 class="cmdcol-title">NOT IN MS-DOS</h3>
             <p>THEME · ABOUT · HELP · EXIT · RESTART · MIMIC · CURSE · VIRUS · CONTROL · RUN · D</p>
           </div>
+          <div class="cmdcol">
+            <h3 class="cmdcol-title">SECRETS</h3>
+            <p>WHY · HELLO · HI · NEVER · TREE /F · CALC 2+2 · FIND SECRET · FORMAT C: · ATTRIB VIRUS.SYS</p>
+          </div>
         </div>
-        <p class="dirdim">TYPE ANY OF THEM IN THE CONSOLE ABOVE. <span class="hl">CURSE</span> IS REAL.</p>
+        <p class="dirdim">TYPE ANY OF THEM IN THE CONSOLE ABOVE. <span class="hl">CURSE</span> IS REAL. <span class="hl">TREE /F</span> IS ALSO REAL.</p>
       </section>
 
-      <section class="dossection" id="themes">
+      <section class="dossection reveal" id="themes">
         <h2 class="sec-title">&gt; THEME ?</h2>
         <p class="sec-sub">Four palettes. One <span class="cmd">THEME</span> command. Click one — it repaints this whole screen.</p>
         <div class="theme-grid">
@@ -125,14 +132,14 @@
         </div>
       </section>
 
-      <section class="dossection" id="run">
+      <section class="dossection reveal" id="run">
         <h2 class="sec-title">&gt; RUN.BAT</h2>
         <p class="sec-sub">Needs Python 3. Windows gets sound effects and command history for free.</p>
         <pre class="codeblock">C:\NEPTUNE32&gt; python NeptuneDOS_13_2.py</pre>
         <p class="dirdim">IT BOOTS. IT INSTALLS ITSELF INTO NEPTUNE32. IT NEVER WRITES OUTSIDE THE SANDBOX.</p>
       </section>
 
-      <section class="dossection" id="download">
+      <section class="dossection reveal" id="download">
         <h2 class="sec-title">&gt; DIR C:\RELEASES</h2>
         <p class="sec-sub">NeptuneDOS 13.2 and friends. Windows executables, no install.</p>
         <div class="dllist">
