@@ -1,203 +1,172 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NeptuneDOS — Build 13.02</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="NeptuneDOS 13.2 — a full command shell written in Python that never left 1981. Boot sequence, themes, 40+ commands, and downloads. A Neptune Productions project.">
+  <meta name="theme-color" content="#0000aa">
+  <title>NeptuneDOS 13.2 — an operating system that never left 1981</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
+<body data-theme="blue">
 
-<div class="scanline-overlay" aria-hidden="true"></div>
-
-<header class="nav">
-  <div class="nav-inner">
-    <a href="#top" class="logo">NEPTUNE<span>//</span>DOS</a>
-    <nav class="nav-links" aria-label="Primary">
-      <a href="#features">Features</a>
-      <a href="#commands">Commands</a>
-      <a href="#themes">Themes</a>
-      <a href="#run-it">Run it</a>
-    </nav>
-    <a href="#run-it" class="nav-cta">Get the source</a>
+  <div id="boot" aria-hidden="true">
+    <pre id="bootOut"></pre>
+    <span id="bootCursor" class="boot-cursor" aria-hidden="true">█</span>
   </div>
-</header>
 
-<main id="top">
+  <div id="screen" class="hidden">
 
-  <!-- ============ HERO ============ -->
-  <section class="hero">
-    <div class="hero-inner">
-      <div class="hero-copy">
-        <p class="eyebrow">NEPTUNE PRODUCTIONS &nbsp;·&nbsp; BUILD 13.02</p>
+    <header class="dosbar">
+      <div class="dosbar-l"><span class="win-char">█</span> NEPTUNE32 — SYSTEM CONSOLE <span class="dim">· NEPTUNE-DOS 13.2</span></div>
+      <nav class="dosbar-r" aria-label="Site navigation">
+        <a href="#about" data-nav>ABOUT</a>
+        <a href="#commands" data-nav>COMMANDS</a>
+        <a href="#themes" data-nav>THEMES</a>
+        <a href="#run" data-nav>RUN</a>
+        <a href="#download" data-nav>DOWNLOAD</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero" id="hero">
+        <pre class="logo" aria-hidden="true">╔═══════════════════════════════════════════════════════════╗
+║                                                           ║
+║   N E P T U N E - D O S   ·   B U I L D   1 3 . 0 2      ║
+║                                                           ║
+╚═══════════════════════════════════════════════════════════╝</pre>
+        <p class="eyebrow">NEPTUNE PRODUCTIONS · BUILD 13.02</p>
         <h1>An operating system<br>that never left 1981.</h1>
-        <p class="hero-sub">
-          NeptuneDOS is a full command shell written in Python — a royal-blue setup
-          screen, a sandboxed file system, forty-some commands, and a TUI that all still
-          think it's running on a 5&nbsp;MHz processor.
-        </p>
-        <div class="hero-actions">
-          <button class="btn btn-primary" id="replay-boot">Watch it boot</button>
-          <a href="#run-it" class="btn btn-ghost">Read the source →</a>
-        </div>
-      </div>
+        <p class="hero-sub">NeptuneDOS is a full command shell written in Python — a royal-blue setup screen, a sandboxed file system, forty-some commands, and a TUI that all still think it's running on a 5 MHz processor.</p>
+        <p class="hero-hint">YOU ARE ALREADY IN IT · TYPE <span class="hl">HELP</span> BELOW · TRY <span class="hl">THEME GREEN</span> · <span class="hl">THEME AMBER</span> · <span class="hl">THEME MONO</span></p>
 
-      <div class="hero-visual">
-        <div class="terminal" id="hero-terminal">
-          <div class="terminal-titlebar">
-            <span class="terminal-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-            <span class="terminal-title">NEPTUNE32 — SYSTEM CONSOLE</span>
-          </div>
-          <div class="terminal-body" id="hero-terminal-body">
-            <pre id="hero-terminal-output"></pre><span class="cursor" id="hero-cursor">█</span>
+        <div class="term-wrap">
+          <div class="term-head"><span class="term-dot"></span> C:\NEPTUNE32 — SYSTEM CONSOLE</div>
+          <div class="term" id="term">
+            <pre class="term-out" id="termOut"></pre>
+            <div class="term-line">
+              <span class="term-prompt" id="termPrompt">C:\NEPTUNE32&gt;</span>
+              <input id="termInput" type="text" autocomplete="off" spellcheck="false" autocapitalize="off" maxlength="120" aria-label="Command line">
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+      </section>
 
-    <div class="stat-strip">
-      <div class="stat"><span class="stat-num">40+</span><span class="stat-label">commands implemented</span></div>
-      <div class="stat"><span class="stat-num">4</span><span class="stat-label">colour themes, live-swappable</span></div>
-      <div class="stat"><span class="stat-num">1981–2026</span><span class="stat-label">years of continuity, allegedly</span></div>
-      <div class="stat"><span class="stat-num">0</span><span class="stat-label">real hardware required</span></div>
-    </div>
-  </section>
+      <section class="stats">
+        <div class="stat"><span class="stat-num">40+</span><span class="stat-label">COMMANDS IMPLEMENTED</span></div>
+        <div class="stat"><span class="stat-num">4</span><span class="stat-label">COLOUR THEMES, LIVE-SWAPPABLE</span></div>
+        <div class="stat"><span class="stat-num">1981–2026</span><span class="stat-label">YEARS OF CONTINUITY, ALLEGEDLY</span></div>
+        <div class="stat"><span class="stat-num">0</span><span class="stat-label">REAL HARDWARE REQUIRED</span></div>
+      </section>
 
-  <!-- ============ FEATURES ============ -->
-  <section class="features" id="features">
-    <div class="section-head">
-      <p class="eyebrow">SYSTEM CORE</p>
-      <h2>Everything a 1990s IT department would recognise.</h2>
-    </div>
-
-    <div class="tile-grid">
-      <article class="tile tile-wide">
-        <span class="tile-tag">SANDBOXED FILE SYSTEM</span>
-        <h3>Everything lives inside NEPTUNE32.</h3>
-        <p><code>DIR</code>, <code>CD</code>, <code>MD</code>, <code>COPY</code>, <code>REN</code> and <code>DEL</code> all
-        operate inside one contained folder tree, so the shell can pretend to be dangerous
-        without ever touching a file it shouldn't.</p>
-      </article>
-
-      <article class="tile">
-        <span class="tile-tag">BOOT SEQUENCE</span>
-        <h3>A pixel-perfect setup screen.</h3>
-        <p>Every boot and reinstall redraws the classic royal-blue MS-DOS
-        installer, box-drawing characters included.</p>
-      </article>
-
-      <article class="tile">
-        <span class="tile-tag">THEME ENGINE</span>
-        <h3>Repaint the whole console.</h3>
-        <p><code>THEME AMBER</code> swaps every colour in the shell instantly —
-        no restart, no reboot.</p>
-      </article>
-
-      <article class="tile">
-        <span class="tile-tag">TUI FILE MANAGER</span>
-        <h3><code>WIN</code> or <code>NORTON</code>.</h3>
-        <p>Drops you into a two-pane text interface for browsing the sandbox
-        without typing a single path.</p>
-      </article>
-
-      <article class="tile">
-        <span class="tile-tag">IN-TERMINAL EDITOR</span>
-        <h3><code>EDIT</code> opens a real editor.</h3>
-        <p>A lightweight text editor for anything living inside NEPTUNE32 —
-        no external program required.</p>
-      </article>
-
-      <article class="tile tile-wide">
-        <span class="tile-tag">DIAGNOSTICS</span>
-        <h3>CHKDSK and SCANDISK narrate a disk that isn't real, with complete sincerity.</h3>
-        <p>Volume serial numbers, byte counts, fake progress bars — the full
-        ceremony of a system check that was never going to find anything wrong.</p>
-      </article>
-    </div>
-  </section>
-
-  <!-- ============ COMMAND SHOWCASE ============ -->
-  <section class="commands" id="commands">
-    <div class="section-head">
-      <p class="eyebrow">COMMAND LINE</p>
-      <h2>Type it, and the console means it.</h2>
-    </div>
-
-    <div class="command-shell">
-      <div class="command-list" id="command-list" role="tablist" aria-label="Example commands">
-        <!-- populated by script.js -->
-      </div>
-
-      <div class="terminal terminal-small">
-        <div class="terminal-titlebar">
-          <span class="terminal-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-          <span class="terminal-title">C:\NEPTUNE32&gt;</span>
+      <section class="dossection" id="about">
+        <h2 class="sec-title">&gt; DIR C:\NEPTUNE32\ABOUT</h2>
+        <div class="dircopy">
+          <p><span class="prompt">C:\NEPTUNE32&gt;</span> Everything lives inside NEPTUNE32 — a contained folder tree the shell pretends to be dangerous without ever touching a file it shouldn't.</p>
+          <p><span class="prompt">C:\NEPTUNE32&gt;</span> Every boot and reinstall redraws the classic royal-blue MS-DOS installer, box-drawing characters included.</p>
+          <p><span class="prompt">C:\NEPTUNE32&gt;</span> <span class="cmd">THEME AMBER</span> swaps every colour in the shell instantly — no restart, no reboot.</p>
+          <p><span class="prompt">C:\NEPTUNE32&gt;</span> <span class="cmd">WIN</span> or <span class="cmd">NORTON</span> drops you into a two-pane text interface for browsing the sandbox without typing a single path.</p>
+          <p><span class="prompt">C:\NEPTUNE32&gt;</span> <span class="cmd">EDIT</span> opens a real in-terminal text editor. <span class="cmd">CHKDSK</span> and <span class="cmd">SCANDISK</span> narrate a disk that isn't real, with complete sincerity.</p>
+          <p class="dirdim">40+ commands. Volume serial 4226-0614. Not actually 1981.</p>
         </div>
-        <div class="terminal-body">
-          <pre id="command-output"></pre>
+      </section>
+
+      <section class="dossection" id="commands">
+        <h2 class="sec-title">&gt; TYPE COMMANDS.DAT</h2>
+        <div class="cmdgrid">
+          <div class="cmdcol">
+            <h3 class="cmdcol-title">SHELL</h3>
+            <p>DIR · CD · MD · RD · COPY · REN · DEL · TYPE · EDIT · ATTRIB · TREE · FORMAT · VOL</p>
+          </div>
+          <div class="cmdcol">
+            <h3 class="cmdcol-title">SYSTEM</h3>
+            <p>VER · SYS · THISPC · MEM · PROMPT · ECHO · CLS · PAUSE · DATE · TIME</p>
+          </div>
+          <div class="cmdcol">
+            <h3 class="cmdcol-title">TOOLS</h3>
+            <p>WIN · NORTON · CHKDSK · SCANDISK · FIND · PING · WEB · OPEN · CALC · NOTEPAD · BROWSER</p>
+          </div>
+          <div class="cmdcol">
+            <h3 class="cmdcol-title">NOT IN MS-DOS</h3>
+            <p>THEME · ABOUT · HELP · EXIT · RESTART · MIMIC · CURSE · VIRUS · CONTROL · RUN · D</p>
+          </div>
         </div>
-      </div>
-    </div>
-  </section>
+        <p class="dirdim">TYPE ANY OF THEM IN THE CONSOLE ABOVE. <span class="hl">CURSE</span> IS REAL.</p>
+      </section>
 
-  <!-- ============ THEMES ============ -->
-  <section class="themes" id="themes">
-    <div class="section-head">
-      <p class="eyebrow">DISPLAY</p>
-      <h2>Four palettes. One <code>THEME</code> command.</h2>
-    </div>
-
-    <div class="swatch-grid">
-      <button class="swatch swatch-blue" data-theme="blue">
-        <span class="swatch-preview"><span>C:\&gt;_</span></span>
-        <span class="swatch-name">BLUE</span>
-        <span class="swatch-desc">Classic royal setup blue</span>
-      </button>
-      <button class="swatch swatch-green" data-theme="green">
-        <span class="swatch-preview"><span>C:\&gt;_</span></span>
-        <span class="swatch-name">GREEN</span>
-        <span class="swatch-desc">Retro CRT terminal</span>
-      </button>
-      <button class="swatch swatch-amber" data-theme="amber">
-        <span class="swatch-preview"><span>C:\&gt;_</span></span>
-        <span class="swatch-name">AMBER</span>
-        <span class="swatch-desc">Vintage phosphor</span>
-      </button>
-      <button class="swatch swatch-mono" data-theme="mono">
-        <span class="swatch-preview"><span>C:\&gt;_</span></span>
-        <span class="swatch-name">MONO</span>
-        <span class="swatch-desc">High-contrast monochrome</span>
-      </button>
-    </div>
-  </section>
-
-  <!-- ============ RUN IT ============ -->
-  <section class="run-it" id="run-it">
-    <div class="run-it-inner">
-      <p class="eyebrow">GET STARTED</p>
-      <h2>Boot it yourself.</h2>
-      <p class="run-sub">Needs Python 3. Windows gets sound effects and command
-      history for free — everything else still boots straight into the shell.</p>
-
-      <div class="code-block">
-        <div class="code-block-head">
-          <span>TERMINAL</span>
-          <button class="copy-btn" id="copy-btn">Copy</button>
+      <section class="dossection" id="themes">
+        <h2 class="sec-title">&gt; THEME ?</h2>
+        <p class="sec-sub">Four palettes. One <span class="cmd">THEME</span> command. Click one — it repaints this whole screen.</p>
+        <div class="theme-grid">
+          <button class="theme-btn theme-blue" data-theme="blue" type="button">
+            <span class="theme-preview"><span>C:\&gt;_</span></span>
+            <span class="theme-name">BLUE</span>
+            <span class="theme-desc">CLASSIC ROYAL SETUP BLUE</span>
+          </button>
+          <button class="theme-btn theme-green" data-theme="green" type="button">
+            <span class="theme-preview"><span>C:\&gt;_</span></span>
+            <span class="theme-name">GREEN</span>
+            <span class="theme-desc">RETRO CRT TERMINAL</span>
+          </button>
+          <button class="theme-btn theme-amber" data-theme="amber" type="button">
+            <span class="theme-preview"><span>C:\&gt;_</span></span>
+            <span class="theme-name">AMBER</span>
+            <span class="theme-desc">VINTAGE PHOSPHOR</span>
+          </button>
+          <button class="theme-btn theme-mono" data-theme="mono" type="button">
+            <span class="theme-preview"><span>C:\&gt;_</span></span>
+            <span class="theme-name">MONO</span>
+            <span class="theme-desc">HIGH-CONTRAST MONOCHROME</span>
+          </button>
         </div>
-        <pre id="install-snippet">python NeptuneDOS_13_2.py</pre>
-      </div>
-    </div>
-  </section>
+      </section>
 
-</main>
+      <section class="dossection" id="run">
+        <h2 class="sec-title">&gt; RUN.BAT</h2>
+        <p class="sec-sub">Needs Python 3. Windows gets sound effects and command history for free.</p>
+        <pre class="codeblock">C:\NEPTUNE32&gt; python NeptuneDOS_13_2.py</pre>
+        <p class="dirdim">IT BOOTS. IT INSTALLS ITSELF INTO NEPTUNE32. IT NEVER WRITES OUTSIDE THE SANDBOX.</p>
+      </section>
 
-<footer class="footer">
-  <p>© 1981–2026 Neptune Productions Corporation. All rights reserved. (Not actually 1981.)</p>
-</footer>
+      <section class="dossection" id="download">
+        <h2 class="sec-title">&gt; DIR C:\RELEASES</h2>
+        <p class="sec-sub">NeptuneDOS 13.2 and friends. Windows executables, no install.</p>
+        <div class="dllist">
+          <div class="dldir"> Volume in drive C has no label<br> Volume Serial Number is 4226-0614<br> Directory of C:\RELEASES</div>
+          <a class="dlitem" href="https://github.com/notmicrosoft2000-cmd/neptunedos-website/releases/download/v13.2/NeptuneDOS_13.2.exe" target="_blank" rel="noopener">
+            <span>NEPTUNEDOS_13.2.EXE</span><span class="dl-size">8,967,168</span><span class="dl-note">[ BUILD 13.2 ]</span>
+          </a>
+          <a class="dlitem" href="https://github.com/notmicrosoft2000-cmd/neptunedos-website/releases/download/v13.2/NeptuneDoS_13.00.exe" target="_blank" rel="noopener">
+            <span>NEPTUNEDOS_13.00.EXE</span><span class="dl-size">9,119,872</span><span class="dl-note">[ BUILD 13.00 ]</span>
+          </a>
+          <a class="dlitem" href="https://github.com/notmicrosoft2000-cmd/neptunedos-website/releases/download/v13.2/Neptune14.00.exe" target="_blank" rel="noopener">
+            <span>NEPTUNE14.00.EXE</span><span class="dl-size">9,313,280</span><span class="dl-note">[ BUILD 14.00 — IT NEVER SHIPPED ]</span>
+          </a>
+          <a class="dlitem" href="https://github.com/notmicrosoft2000-cmd/neptunedos-website/releases/download/v13.2/NeptuneDoS_10.0.exe" target="_blank" rel="noopener">
+            <span>NEPTUNEDOS_10.0.EXE</span><span class="dl-size">7,294,976</span><span class="dl-note">[ THE CLASSIC ]</span>
+          </a>
+          <a class="dlitem" href="https://github.com/notmicrosoft2000-cmd/neptunedos-website/releases/download/v13.2/NeptuneDOS_13_2_.py" target="_blank" rel="noopener">
+            <span>NEPTUNEDOS_13_2_.PY</span><span class="dl-size">55,628</span><span class="dl-note">[ SOURCE ]</span>
+          </a>
+          <a class="dlitem" href="https://github.com/notmicrosoft2000-cmd/neptunedos-website/releases/download/v13.2/NeptuneDOS_GUI.py" target="_blank" rel="noopener">
+            <span>NEPTUNEDOS_GUI.PY</span><span class="dl-size">54,214</span><span class="dl-note">[ EXPERIMENTAL GUI ]</span>
+          </a>
+          <div class="dldir"> 8 file(s) &nbsp;&nbsp;—&nbsp;&nbsp; ALSO ON THE <a class="hl" href="https://github.com/notmicrosoft2000-cmd/neptunedos-website/releases" target="_blank" rel="noopener">RELEASES PAGE ↗</a></div>
+        </div>
+      </section>
+    </main>
 
-<script src="script.js"></script>
+    <footer class="dosbar dosbar-foot">
+      <div>© 1981–2026 NEPTUNE PRODUCTIONS CORPORATION. ALL RIGHTS RESERVED. (NOT ACTUALLY 1981.)</div>
+    </footer>
+
+  </div>
+
+  <script src="js/sfx.js"></script>
+  <script src="js/dos.js"></script>
 </body>
 </html>
